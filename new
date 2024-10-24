@@ -1,0 +1,2659 @@
+************************************************************************
+*  Object Name   :  ZLCROUTE_GET_ROUTING_LIST                          *
+*  Object Title  :  Get Routing Report                                 *
+*  WRICEF ID     :  EDS0023                                            *
+*  Author        :  Arindam Bhattacharjee                              *
+*  Date          :  14-Feb-2014                                         *
+*----------------------------------------------------------------------*
+*Description : Used for Routing related Report                         *
+*                                                                      *
+*----------------------------------------------------------------------*
+*  Copy of Standard SAP Object: No                                     *
+*  Object Name   : N/A                                                 *
+*----------------------------------------------------------------------*
+*  Includes      : No                                                  *
+*                                                                      *
+*----------------------------------------------------------------------*
+*  Tables Used      :          SELECT INSERT UPDATE                    *
+*               N/A                                                    *
+*----------------------------------------------------------------------*
+* Program Change History                                               *
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-000                                                  *
+* Date      : 14-Feb-2014                                              *
+* Change No : N/A                                                      *
+* WRICEF-ID : EDS0023                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : N/A                                                      *
+* Transport : DE1K900894                                               *
+* User ID   : BHATTA37                                                 *
+* Release ID: Release 01 (Global)                                      *
+*                                                                      *
+* Change Description:                                                  *
+* Initial Code
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-001                                                  *
+* Date      : 11-Apr-2014                                              *
+* Change No : N/A                                                      *
+* WRICEF-ID : EDS0023                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : 0079                                                     *
+* Transport : DE1K903206                                               *
+* User ID   : BHATTA37                                                 *
+* Release ID: Release 01 (Global)                                      *
+*                                                                      *
+* Change Description:                                                  *
+* Initial Code
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-002                                                  *
+* Date      : 16-MAY-2014                                              *
+* Change No : N/A                                                      *
+* WRICEF-ID : EDS0020                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : 433                                                      *
+* Transport : DE1K904141                                               *
+* User ID   : SARKAA19                                                 *
+* Release ID: Release 01 (Global)                                      *
+*                                                                      *
+* Change Description:                                                  *
+* Auth object for LC plant and compoany code.
+*----------------------------------------------------------------------*
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-003                                                  *
+* Date      : 13-NOV-2014                                              *
+* Change No : N/A                                                      *
+* Incident# : N/A                                                      *
+* WRICEF-ID : EDS0020                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : N/A                                                      *
+* Transport : DE1K908807                                               *
+* User ID   : ZAHIRS02                                                 *
+* Release ID: R02                                                      *
+*                                                                      *
+* Change Description:                                                  *
+*       Hide Dropship Qualifier field from Routing Section             *
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-004                                                  *
+* Date      : 29-NOV-2017                                              *
+* Change No : N/A                                                      *
+* Incident# : INC1077043                                               *
+* WRICEF-ID : EDS0020                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : N/A                                                      *
+* Transport : DE2K937160                                               *
+* User ID   : VONTIP                                                   *
+* Release ID: COE                                                      *
+* Change Description: Added exclude functionlity to the plant          *
+*----------------------------------------------------------------------*
+* MOD-XXX   : MOD-005                                                  *
+* Date      : 10-NOV-2023                                              *
+* Change No : CHG9879084                                               *
+* Incident# : INC3012917                                               *
+* WRICEF-ID : EDS0020                                                  *
+* SCR#      : N/A                                                      *
+* Defect-ID : N/A                                                      *
+* Transport : DE3K920494                                            *
+* User ID   : KUMARS22                                                 *
+* Release ID: EHR                                                      *
+* Change Description: Display of firstplant  and lastplant             *
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Report  ZLCFLEX_GET_ROUTING
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zlcroute_get_routing_list MESSAGE-ID zlc.
+*
+INCLUDE <icon>.
+TYPE-POOLS: slis, sscr.
+*
+TABLES:zlcrouteh,
+       zlcrouted,
+       zlcroutem,
+       zlcspcorg,
+       t001w,
+       lfa1,
+       kna1,
+       sscrfields.
+*
+DATA: g_dummy(5),
+      gv_okcode             TYPE sy-ucomm,
+      gv_syevnt(8)          TYPE c.
+
+DATA: BEGIN OF gs_spc,
+    lc    TYPE zlc_logisticcenter,
+    spc	  TYPE zlc_supplypointcompany,
+    werks	TYPE werks_d,
+    lgort	TYPE lgort_d,
+  END OF gs_spc.
+
+DATA: BEGIN OF gs_ekgrp,
+    lc    TYPE zlc_logisticcenter,
+    ekgrp TYPE ekgrp,
+    eknam TYPE eknam,
+  END OF gs_ekgrp.
+
+
+DATA: BEGIN OF gs_plant_tx,
+       werks TYPE werks_d,
+       name1 TYPE name1,
+       land1 TYPE land1,
+      END OF gs_plant_tx.
+
+DATA: BEGIN OF gs_lifnr_tx,
+       lifnr TYPE lifnr,
+       name1 TYPE name1,
+       land1 TYPE land1_gp,
+      END OF gs_lifnr_tx.
+
+DATA: BEGIN OF gs_kunnr_tx,
+       kunnr TYPE kunnr,
+       name1 TYPE name1,
+       land1 TYPE land1_gp,
+      END OF gs_kunnr_tx.
+DATA: BEGIN OF gs_fltyp_dd,
+      key   TYPE c,
+      value(20) TYPE c,
+      END OF gs_fltyp_dd.
+DATA: BEGIN OF gs_ndtyp_dd,
+      key   TYPE c,
+      value(12) TYPE c,
+      END OF gs_ndtyp_dd.
+
+DATA : BEGIN OF gs_auth.
+        INCLUDE STRUCTURE us335.
+DATA:   uname TYPE syuname,
+      END OF gs_auth.
+
+DATA: gs_routealv  TYPE zlcroute_alv.
+DATA: zlcroute_alv TYPE zlcroute_alv.
+DATA:
+      gt_spc                LIKE TABLE OF gs_spc,
+      gt_stxh               TYPE TABLE OF stxh,
+      gt_ekgrp              LIKE TABLE OF gs_ekgrp,
+      gt_routealv           TYPE TABLE OF zlcroute_alv,
+      gt_plth               TYPE TABLE OF zlcplth,
+      gt_sel_tab            TYPE TABLE OF rsparams,
+      gt_plant_tx           LIKE TABLE OF gs_plant_tx,
+      gt_lifnr_tx           LIKE TABLE OF gs_lifnr_tx,
+      gt_kunnr_tx           LIKE TABLE OF gs_kunnr_tx,
+      gt_fltyp_dd           LIKE TABLE OF gs_fltyp_dd,
+      gt_stats_dd           LIKE TABLE OF gs_fltyp_dd,
+      gt_ndtyp_dd           LIKE TABLE OF gs_ndtyp_dd.
+
+*R3
+DATA:
+      gv_oview  TYPE c,
+      gv_flag   TYPE c,
+      gs_where  TYPE string,
+      gt_rotm   TYPE TABLE OF zlcroutem,
+      gt_maktx  TYPE TABLE OF makt,
+      gt_shipty TYPE TABLE OF zlcshiptype,
+      gt_auth   LIKE TABLE OF gs_auth.
+*BEGIN of MOD-002-<Release 01>-DE1K904141-SARKAA19-16-MAY-2014
+CONSTANTS:  gc_auth_obj   TYPE xuobject VALUE 'Z_FLEXACT',
+            gc_auth_obj1  TYPE xuobject VALUE 'Z_FLEXBUKR',
+            gc_auth_obj2  TYPE xuobject VALUE 'Z_FLEXWERK',
+            gc_auth_flex  TYPE xufield VALUE 'ZFLEXACTVT',
+            gc_auth_actv  TYPE xufield VALUE 'ACTVT',
+            gc_auth_lc    TYPE xufield VALUE 'ZLC_CENTER',
+            gc_auth_spc   TYPE xufield VALUE 'BUKRS',
+            gc_auth_werks TYPE xufield VALUE 'WERKS'.
+*END of MOD-002-<Release 01>-DE1K904141-SARKAA19-16-MAY-2014
+*R3
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+CONSTANTS : gc_return_mid TYPE char9  VALUE 'GV_RETURN',"returns
+            gc_bwart_c    TYPE char10 VALUE 'GT_BWART_C',"customer Mov type
+            gc_bwart_v    TYPE char10 VALUE 'GT_BWART_V'."Vendor Mov type
+
+TYPES : BEGIN OF gy_bwart ,
+         sign   TYPE char1, "sign
+         option TYPE char2, "option
+         low    TYPE bwart, "low
+         high   TYPE bwart, "high
+        END OF gy_bwart,
+        gy_t_bwart TYPE STANDARD TABLE OF gy_bwart.
+
+"tab type for movement type
+DATA : gt_bwart_c TYPE gy_t_bwart, "table for customer movement type
+       gt_bwart_v TYPE gy_t_bwart, "table for vendor movement type
+       gv_bwart_c TYPE bwart, "variable for customer movement type
+       gv_bwart_v TYPE bwart. "variable for vendor movement type
+DATA : gv_return TYPE char1.  "variable for return
+
+
+TYPES : BEGIN OF gy_werks,
+         werks TYPE werks_d,
+        END OF gy_werks.
+*BEGIN OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+TYPES:  BEGIN OF ty_routedd,
+        routenbr TYPE zlc_routenumber,
+        routeseq TYPE zlc_routesequence,
+        spcompny TYPE zlc_supplypointcompany,
+        spcplant TYPE zlc_spcplant,
+        lgort TYPE lgort_d,
+        END OF ty_routedd.
+DATA:   tt_routedd TYPE STANDARD TABLE OF ty_routedd,
+        lwa_routed TYPE ty_routedd,
+        gv_flag1(10) TYPE c.
+*END OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+
+*END: MOD-003 R02-DE1K908807-ZAHIRS02>-13-NOV-2014
+*RANGES: S_STOPS  FOR ZLCROUTEH-TOTLSTOP.
+*        S_SPCVIR FOR ZLCROUTEH-SPCVSVRS.
+*--------------------------------------------------------------------*
+*-------------SELECTION SCREEN---------------------------------------*
+*--------------------------------------------------------------------*
+
+PARAMETERS: p_callfr(8) NO-DISPLAY.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex01 WITH FRAME TITLE TEXT-029.
+SELECTION-SCREEN BEGIN OF LINE.
+
+PARAMETERS     : p_elc AS CHECKBOX .
+"BEGIN of change MOD-000-<Release 01>-DE1K900894-BHATTA37-03-MAR-2014
+*SELECTION-SCREEN COMMENT 15(10) text-003 FOR FIELD p_elc.
+SELECTION-SCREEN COMMENT 3(9) TEXT-003 FOR FIELD p_elc.
+"END of change MOD-000-<Release 01>-DE1K900894-BHATTA37-03-MAR-2014
+
+PARAMETERS     : p_alc AS CHECKBOX.
+"BEGIN of change MOD-000-<Release 01>-DE1K900894-BHATTA37-03-MAR-2014
+*SELECTION-SCREEN COMMENT 3(10) text-002 FOR FIELD p_alc.
+SELECTION-SCREEN COMMENT 15(10) TEXT-002 FOR FIELD p_alc.
+"END of change MOD-000-<Release 01>-DE1K900894-BHATTA37-03-MAR-2014
+
+
+*PARAMETERS     : p_lalc AS CHECKBOX . "MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*SELECTION-SCREEN COMMENT 27(10) text-004 FOR FIELD p_lalc."MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*R3
+*PARAMETERS     : p_gesa AS CHECKBOX .
+*SELECTION-SCREEN COMMENT 40(10) text-023 FOR FIELD p_gesa."MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+
+PARAMETERS     : p_gese AS CHECKBOX .
+*SELECTION-SCREEN COMMENT 53(10) text-024 FOR FIELD p_gese. "MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+SELECTION-SCREEN COMMENT 27(10) TEXT-024 FOR FIELD p_gese.
+PARAMETERS     : p_gesam AS CHECKBOX .
+*SELECTION-SCREEN COMMENT 66(10) text-025 FOR FIELD p_gesam. "MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+SELECTION-SCREEN COMMENT 40(10) TEXT-025 FOR FIELD p_gesam.
+PARAMETERS     : p_usexp AS CHECKBOX .
+*SELECTION-SCREEN COMMENT 79(10) text-037 FOR FIELD p_usexp. "MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+SELECTION-SCREEN COMMENT 53(10) TEXT-037 FOR FIELD p_usexp.
+*R3
+
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN: END OF BLOCK flex01.
+
+*R3
+SELECTION-SCREEN: BEGIN OF BLOCK flex05 WITH FRAME TITLE TEXT-026.
+SELECTION-SCREEN BEGIN OF LINE.
+PARAMETERS: p_hview RADIOBUTTON GROUP radg.
+SELECTION-SCREEN COMMENT 3(12) TEXT-027 FOR FIELD p_hview.
+PARAMETERS: p_mview RADIOBUTTON GROUP radg.
+SELECTION-SCREEN COMMENT 35(20) TEXT-028 FOR FIELD p_mview.
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN: END OF BLOCK flex05.
+*R3
+
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex02 WITH FRAME TITLE TEXT-001.
+SELECT-OPTIONS:     s_route  FOR zlcrouteh-routenbr,
+                    s_status FOR zlcrouteh-routstat NO INTERVALS NO-EXTENSION,
+                    s_flowty FOR zlcrouteh-flowtype,
+                    s_valfrm FOR zlcrouteh-validfrm,
+                    s_valto  FOR zlcrouteh-validtil,
+                    s_crtby  FOR zlcroute_alv-createby,
+                    s_crtdt  FOR zlcrouteh-createdt,
+                    s_chgby  FOR zlcroute_alv-changeby,
+                    s_chgdt  FOR zlcrouteh-changedt,
+                    s_flexsc FOR zlcrouteh-flexscen,
+                    s_phyflo FOR zlcrouteh-physflow,
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+* commented below code to hide dropship qualifier
+*                    s_dsqual FOR zlcrouteh-dsqualify,
+                    s_dsqual FOR zlcrouteh-dsqualify NO-DISPLAY,
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+                    s_mdc    FOR zlcrouteh-mdchksts.
+SELECTION-SCREEN: END OF BLOCK flex02.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex03 WITH FRAME TITLE TEXT-006.
+SELECT-OPTIONS:   s_srcevn FOR lfa1-lifnr.
+*                  s_srcepl FOR t001w-werks.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-007 FOR FIELD p_toller.
+PARAMETERS     : p_toller AS CHECKBOX .
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN: END OF BLOCK flex03.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex04 WITH FRAME TITLE TEXT-008.
+SELECT-OPTIONS:  s_dtvend  FOR lfa1-lifnr.
+SELECT-OPTIONS:  s_dccust  FOR kna1-kunnr.
+*                 s_dcwerk FOR t001w-werks.                  .
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-009 FOR FIELD p_consg.
+PARAMETERS     : p_consg AS CHECKBOX .
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN: END OF BLOCK flex04.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex06 WITH FRAME TITLE TEXT-010.
+SELECT-OPTIONS: s_matnr FOR zlcroutem-matnr,
+                s_shto  FOR zlcroutem-shipto.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-011 FOR FIELD p_matsp.
+PARAMETERS     : p_matsp AS CHECKBOX  .
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN: END OF BLOCK flex06.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex07 WITH FRAME TITLE TEXT-012.
+PARAMETERS  p_nodety  LIKE zlcrouted-nodetype
+            AS LISTBOX VISIBLE LENGTH 12.
+SELECT-OPTIONS: s_spcom  FOR zlcrouted-spcompny,
+                s_spcpl  FOR zlcrouted-spcplant,
+                s_spcloc FOR zlcrouted-lgort,
+                s_spcekg FOR zlcrouted-ekgrp,
+                s_flexad FOR zlcrouted-flexadmincd.
+SELECTION-SCREEN: END OF BLOCK flex07.
+
+SELECTION-SCREEN: BEGIN OF BLOCK flex08 WITH FRAME TITLE TEXT-020.
+*SELECT-OPTIONS: s_spcvir FOR zlcroute_alv-stops,
+*                s_stops   FOR zlcroute_alv-stops.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-021 FOR FIELD p_dauto.
+PARAMETERS     : p_dauto AS CHECKBOX  .
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+*SELECTION-SCREEN COMMENT 1(31) text-030 FOR FIELD p_altr. "MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*PARAMETERS     : p_altr AS CHECKBOX  ."MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-042 FOR FIELD p_eurel.
+PARAMETERS     : p_eurel AS CHECKBOX  .
+SELECTION-SCREEN END OF LINE.
+SELECTION-SCREEN BEGIN OF LINE.
+*SELECTION-SCREEN COMMENT 1(31) text-043 FOR FIELD p_avbill."MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*PARAMETERS     : p_avbill AS CHECKBOX  ."MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+SELECTION-SCREEN END OF LINE.
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-044 FOR FIELD p_return.
+PARAMETERS     : p_return AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+*---VOTIP
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(31) TEXT-050 FOR FIELD p_flash.
+PARAMETERS     : p_flash AS CHECKBOX.
+SELECTION-SCREEN END OF LINE.
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+SELECTION-SCREEN: END OF BLOCK flex08.
+
+
+
+*--------------------------------------------------------------------*
+INITIALIZATION.
+*--------------------------------------------------------------------*
+  SET PF-STATUS 'ZROUTING'.
+  IF p_callfr IS NOT INITIAL.
+    gv_okcode = 'EXEC'.
+    sscrfields-ucomm = gv_okcode.
+    sy-ucomm = gv_okcode.
+  ENDIF.
+
+*  PERFORM init_selscreen.
+
+*--------------------------------------------------------------------*
+
+
+*--------------------------------------------------------------------*
+* AT SELECTION-SCREEN ON VALUE-REQUEST
+*-------------------------------------------------------------------*
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcom-low.
+  PERFORM f4_spc_company USING 'S_SPCOM-LOW'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcom-high.
+  PERFORM f4_spc_company USING 'S_SPCOM-HIGH'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcpl-low.
+  PERFORM f4_spc_plant USING 'S_SPCPL-LOW'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcpl-high.
+  PERFORM f4_spc_plant USING 'S_SPCPL-HIGH'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcloc-low.
+  PERFORM f4_spc_lgort USING 'S_SPCLOC-LOW'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcloc-high.
+  PERFORM f4_spc_lgort USING 'S_SPCLOC-HIGH'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcekg-low.
+  PERFORM f4_spc_ekgrp USING 'S_SPCEKG-LOW'.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_spcekg-high.
+  PERFORM f4_spc_ekgrp USING 'S_SPCEKG-HIGH'.
+*
+*AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_flexsc-low.
+*  PERFORM f4_flex_scenario USING 'S_FLEXSC-LOW'.
+*
+*AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_flexsc-high.
+*  PERFORM f4_flex_scenario USING 'S_FLEXSC-HIGH'.
+
+
+*--------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+  CASE sy-tcode.
+    WHEN 'ZPREX'.
+    WHEN OTHERS.
+      LOOP AT SCREEN.
+        IF screen-name EQ 'P_FLASH'.
+          screen-input     = 0.
+          screen-invisible = 1.
+          MODIFY SCREEN.
+        ENDIF.
+      ENDLOOP.
+  ENDCASE.
+
+*--------------------------------------------------------------------*
+AT SELECTION-SCREEN.
+*--------------------------------------------------------------------*
+* Set OKcode when call from ZPRWB transaction
+
+  DATA: lv_allow TYPE c,
+        lv_allow_c TYPE flag,
+        lv_allow_p TYPE flag.
+
+  IF p_callfr IS NOT INITIAL.
+    gv_okcode = p_callfr.
+    CLEAR p_callfr.
+  ELSE.
+    CALL 'DYNP_OKCODE_GET' ID 'FCODE' FIELD gv_syevnt.
+    gv_okcode = gv_syevnt.
+  ENDIF.
+
+  CASE gv_okcode.
+    WHEN 'MYDF'.
+      PERFORM variant_f16.
+      sscrfields-ucomm = gv_okcode.
+      sy-ucomm = gv_okcode.
+
+    WHEN 'ZPRWB'.
+      sscrfields-ucomm = gv_okcode.
+      sy-ucomm = gv_okcode.
+
+    WHEN 'ZPREX'.
+      sscrfields-ucomm = gv_okcode.
+      sy-ucomm = gv_okcode.
+
+    WHEN 'EXEC'.
+*-rl4
+      " BEGIN OF MOD-000-<Release 01>-DE1K901865-SARKAA19-25-MAR-2014
+*As per the issue log, Zoetis business do not want the error message
+*when none of the logistic center is selected. Hence this check is commented out.
+*      IF p_alc IS INITIAL AND
+*          p_elc IS INITIAL AND
+**           p_lalc IS INITIAL AND    " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+***R3
+**            p_gesa IS INITIAL AND   " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*             p_gese IS INITIAL AND
+*              p_gesam IS INITIAL AND
+*               p_usexp IS INITIAL AND
+**r3
+*               s_route IS INITIAL.
+*        MESSAGE e046 .
+*      ENDIF.
+      " END OF MOD-000-<Release 01>-DE1K901865-SARKAA19-25-MAR-2014
+      IF s_phyflo[] IS NOT INITIAL
+      AND p_nodety  IS NOT INITIAL.
+        MESSAGE e268 .
+      ENDIF.
+
+      IF s_dsqual[] IS NOT INITIAL
+      AND p_nodety  IS NOT INITIAL.
+        MESSAGE e275 .
+      ENDIF.
+
+*rl4
+      PERFORM export_selections.
+      sscrfields-ucomm = 'ONLI'.
+
+    WHEN 'FC_RREF'.    " Call from Routing Workbench Refresh
+      sscrfields-ucomm = 'ONLI'.
+
+    WHEN 'CLEA'.
+      PERFORM refresh_all.
+      sscrfields-ucomm = gv_okcode.
+      sy-ucomm = gv_okcode.
+
+    WHEN 'FC_RCRE'.
+
+      PERFORM auth_check  USING  '*'
+                                 '01' '1'
+                        CHANGING lv_allow.
+
+      IF lv_allow IS INITIAL.
+        MESSAGE e106(zlc)  WITH TEXT-013.
+        EXIT.
+*BEGIN of MOD-002-<Release 01>-DE1K904141-SARKAA19-16-MAY-2014
+      ELSE.
+*check authorization for company code
+        PERFORM sub_auth_check_spccompny USING '*'
+                                               '01'
+                                               sy-uname
+                                               '1'
+                                         CHANGING lv_allow_c.
+        IF  lv_allow_c IS INITIAL.
+          MESSAGE e106(zlc)  WITH TEXT-013.
+          EXIT.
+        ELSE.
+*check authorization for plant
+          PERFORM sub_auth_check_spcplant USING '*'
+                                                '01'
+                                                 sy-uname
+                                                 '1'
+                                        CHANGING lv_allow_p.
+          IF  lv_allow_p IS INITIAL.
+            MESSAGE e106(zlc)  WITH TEXT-013.
+            EXIT.
+          ELSE.
+*END of MOD-002-<Release 01>-DE1K904141-SARKAA19-16-MAY-2014
+            CALL FUNCTION 'ZLCROUTE_CALL_ROUTING_SCREEN'
+              EXPORTING
+                im_mode = '1'.
+            sscrfields-ucomm = gv_okcode.
+            sy-ucomm = gv_okcode.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+
+    WHEN 'BACK'
+      OR 'EXIT'
+      OR 'CANCEL'.
+      SET SCREEN 0.
+      LEAVE TO TRANSACTION 'SESSION_MANAGER'.
+*rl6
+    WHEN 'FC_ULOAD'.
+      BREAK vontip.
+      IF sy-tcode EQ 'ZPREX'.
+        PERFORM onact_mass_new_upload.
+        sscrfields-ucomm = gv_okcode.
+        sy-ucomm = gv_okcode.
+      ELSE.
+        PERFORM onact_mass_upload.
+        sscrfields-ucomm = gv_okcode.
+        sy-ucomm = gv_okcode.
+      ENDIF.
+*rl6
+
+    WHEN OTHERS.
+      sscrfields-ucomm = gv_okcode.
+      sy-ucomm = gv_okcode.
+
+
+  ENDCASE.
+
+
+
+*--------------------------------------------------------------------*
+START-OF-SELECTION.
+*--------------------------------------------------------------------*
+
+  REFRESH : gt_routealv.
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+  PERFORM sub_return_check USING p_return.
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+  PERFORM get_routing_data.
+
+* Export to memory variable and import it in ZLCROUTE FGRP scr 102
+  IF p_hview IS NOT INITIAL.
+    gv_oview = 'H'.
+  ELSE.
+    gv_oview = 'M'.
+  ENDIF.
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+  IF p_return IS NOT INITIAL.
+    gv_return = abap_true.
+  ENDIF.
+* flag for return and movement type range table are exported to
+* memory id and imported in include program LZLCROUTEO05
+  EXPORT : gv_return TO MEMORY ID gc_return_mid, "GV_RETURN
+           gt_bwart_c TO MEMORY ID gc_bwart_c,   "GT_BWART_C
+           gt_bwart_v TO MEMORY ID gc_bwart_v.   "GT_BWART_V
+
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+
+  EXPORT gt_routealv FROM gt_routealv[] TO MEMORY ID 'GT_ROUTEALV'.
+  EXPORT gv_oview TO MEMORY ID 'ZRKWB_OVIEW'.
+
+  IF gv_okcode = 'EXEC'
+  AND p_callfr <> 'ZPRWB'.
+    LEAVE SCREEN.
+  ELSE.
+    EXIT.
+  ENDIF.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  get_routing_data
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM get_routing_data .
+  DATA: ls_routehd TYPE zlcrouteh.
+  DATA: lt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: tt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: ls_lfa1    TYPE lfa1.
+  DATA: lt_lfa1    TYPE TABLE OF lfa1.
+  DATA: ls_kna1    TYPE kna1.
+  DATA: lt_kna1    TYPE TABLE OF kna1.
+  DATA: ls_routed  TYPE zlcrouted.
+  DATA: ls_routedx TYPE zlcrouted.
+  DATA: lt_routed  TYPE TABLE OF zlcrouted.
+  DATA: tt_routed  TYPE TABLE OF zlcrouted.
+  DATA: ls_routem  TYPE zlcroutem.
+  DATA: ls_plth    TYPE zlcplth.  " MOD-000-<Release 01>-DE1K900894-NAGG-03-FEB-2014
+  DATA: lt_routem  TYPE TABLE OF zlcroutem.
+  DATA: lv_tabix   TYPE i.
+  DATA: lv_index   TYPE sytabix.
+*---------------------------------------------------------*
+***BOC by VONTIP: INC1077043 : 29-NOV-2017: DE2K937160
+***Description : Added exclude functionlity to the plant
+*---------------------------------------------------------*
+  DATA: lv_exclude TYPE c.
+  DATA: lt_werks   TYPE STANDARD TABLE OF gy_werks INITIAL SIZE 0.
+  DATA: ls_werks   TYPE gy_werks.
+
+  RANGES : s_werks FOR t001w-werks.
+*---------------------------------------------------------*
+***EOC by VONTIP: INC1077043 : 29-NOV-2017: DE2K937160
+*---------------------------------------------------------*
+*R3
+  DATA: ls_makt TYPE makt,
+        ls_ship TYPE zlcshiptype.
+*R3
+
+  RANGES : lr_nodety FOR zlcrouted-nodetype.
+  FIELD-SYMBOLS: <fs_route> LIKE s_route.
+*
+* Routing Number
+  IF s_route[] IS NOT INITIAL.
+    LOOP AT s_route ASSIGNING <fs_route>.
+      IF <fs_route>-low IS NOT INITIAL.
+        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+          EXPORTING
+            input  = <fs_route>-low
+          IMPORTING
+            output = <fs_route>-low.
+      ENDIF.
+      IF <fs_route>-high IS NOT INITIAL.
+        CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+          EXPORTING
+            input  = <fs_route>-high
+          IMPORTING
+            output = <fs_route>-high.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+
+* - Dynamic Routing Header Selection
+  PERFORM dynamic_where_clause.
+
+  SELECT *
+         INTO TABLE lt_routehd
+         FROM zlcrouteh
+         WHERE (gs_where).
+*
+
+  CHECK sy-subrc EQ 0.
+
+*- Filter Partially Approved
+  PERFORM  filter_for_partially_approved TABLES lt_routehd.
+
+
+*Material Specific
+  IF p_matsp IS NOT INITIAL.
+    DELETE lt_routehd WHERE matlspec = space.
+  ENDIF.
+*Toller
+  IF p_toller IS NOT INITIAL.
+    DELETE lt_routehd WHERE tollflag = space.
+  ENDIF.
+*Consignment
+  IF p_consg IS NOT INITIAL.
+    DELETE lt_routehd WHERE consgflg = space.
+  ENDIF.
+
+* Deactivate Automation
+  IF p_dauto IS NOT INITIAL.
+    DELETE lt_routehd WHERE deacauto = space.
+  ENDIF.
+
+* Chack flash sales
+  IF p_flash IS NOT INITIAL.
+    DELETE lt_routehd WHERE flash = space.
+  ENDIF.
+  BREAK vontip.
+  IF sy-tcode EQ 'ZPREX'.
+    DELETE lt_routehd WHERE tcode NE 'ZPREX'.
+  ENDIF.
+
+  IF sy-tcode EQ 'ZPRWB'.
+    DELETE lt_routehd WHERE tcode EQ 'ZPREX'.
+  ENDIF.
+
+  REFRESH: tt_routehd.
+
+  SORT lt_routehd BY routenbr.
+  DELETE ADJACENT DUPLICATES FROM lt_routehd COMPARING routenbr.
+  CHECK lt_routehd[] IS NOT INITIAL.
+
+*- Routing Materials
+  IF s_matnr[] IS NOT INITIAL
+  OR s_shto[] IS NOT INITIAL.
+    REFRESH lt_routem.
+    SELECT * FROM zlcroutem
+             INTO TABLE gt_rotm
+             FOR ALL ENTRIES IN lt_routehd
+             WHERE routenbr = lt_routehd-routenbr
+               AND matnr IN s_matnr[]
+               AND shipto IN s_shto[].
+    IF sy-subrc EQ 0.
+      SORT gt_rotm BY routenbr.
+      LOOP AT lt_routehd INTO ls_routehd.
+        lv_tabix = sy-tabix.
+        READ TABLE gt_rotm
+             INTO  ls_routem WITH KEY routenbr = ls_routehd-routenbr
+                                                 BINARY SEARCH.
+        IF sy-subrc NE 0.
+          DELETE lt_routehd INDEX lv_tabix.
+        ENDIF.
+      ENDLOOP.
+    ELSE.
+      REFRESH : lt_routehd.
+    ENDIF.
+  ELSE.
+    PERFORM get_zlcroutem TABLES lt_routehd.
+  ENDIF.
+  PERFORM retrieve_matnr_text..
+*
+
+
+* Routing Nodes
+  IF lt_routehd[] IS NOT INITIAL.
+    REFRESH: lt_routed.
+    lr_nodety-sign = 'I'.
+    lr_nodety-option = 'EQ'.
+
+    CASE p_nodety.
+      WHEN 1.
+        lr_nodety-low = 1.
+        APPEND lr_nodety.
+      WHEN 2.
+        lr_nodety-low = 2.
+        APPEND lr_nodety.
+      WHEN 3.
+        lr_nodety-low = 3.
+        APPEND lr_nodety.
+      WHEN 4.
+        lr_nodety-low = 4.
+        APPEND lr_nodety.
+      WHEN OTHERS.
+        lr_nodety-low = 1.
+        APPEND lr_nodety.
+        lr_nodety-low = 2.
+        APPEND lr_nodety.
+        lr_nodety-low = 3.
+        APPEND lr_nodety.
+        lr_nodety-low = 4.
+        APPEND lr_nodety.
+    ENDCASE.
+
+    SELECT *
+           FROM zlcrouted
+           INTO TABLE lt_routed
+            FOR ALL ENTRIES IN lt_routehd
+            WHERE routenbr = lt_routehd-routenbr
+              AND   nodetype IN lr_nodety
+              AND   spcompny IN s_spcom
+              AND   spcplant IN s_spcpl
+              AND   lgort    IN s_spcloc
+              AND   ekgrp    IN s_spcekg
+*rl6
+              AND   flexadmincd IN s_flexad.
+*RL6
+*R3
+    IF sy-subrc <> 0.
+      REFRESH lt_routehd.
+    ELSE.
+      IF lr_nodety IS NOT INITIAL OR
+            s_spcom[] IS NOT INITIAL OR
+            s_spcpl[] IS NOT INITIAL OR
+            s_spcloc[] IS NOT INITIAL OR
+            s_spcekg[] IS NOT INITIAL
+*rl6
+            OR s_flexad[] IS NOT INITIAL.
+*rl6
+        SORT lt_routed BY routenbr.
+
+*---------------------------------------------------------*
+***BOC by VONTIP: INC1077043 : 29-NOV-2017: DE2K937160
+***Description : Added exclude functionlity to the plant
+*---------------------------------------------------------*
+*---Check excluded plants from the selection
+        CLEAR s_werks[].
+        LOOP AT s_spcpl WHERE sign EQ 'E'.
+          s_spcpl-sign = 'I'.
+          APPEND s_spcpl TO s_werks[].
+        ENDLOOP.
+
+*---Get all excluded plants
+        CLEAR lt_werks[].
+        IF s_werks[] IS NOT INITIAL.
+          SELECT werks FROM zlcspcplant "t001w
+            INTO TABLE lt_werks
+           WHERE werks IN s_werks[].
+        ENDIF.
+
+
+        LOOP AT lt_routehd INTO ls_routehd.
+* - INC1077043 Issue with search option in ZPRWB
+          lv_tabix = sy-tabix.
+          CLEAR lv_exclude.
+          IF lt_werks[] IS NOT INITIAL.
+            LOOP AT lt_werks INTO ls_werks.
+              FIND ALL OCCURRENCES OF
+                REGEX ls_werks-werks IN ls_routehd-routedsc MATCH COUNT sy-tabix.
+              IF sy-tabix NE 0.
+                lv_exclude = 'X'.
+                EXIT.
+              ENDIF.
+            ENDLOOP.
+          ENDIF.
+
+          IF lv_exclude IS NOT INITIAL.
+            DELETE lt_routehd INDEX lv_tabix.
+          ELSE.
+            READ TABLE lt_routed
+                INTO  ls_routed WITH KEY routenbr = ls_routehd-routenbr
+                                                     BINARY SEARCH.
+            IF sy-subrc NE 0.
+              DELETE lt_routehd INDEX lv_tabix.
+            ENDIF.
+          ENDIF.
+        ENDLOOP.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+*---------------------------------------------------------*
+***EOC by VONTIP: INC1077043 : 29-NOV-2017: DE2K937160
+*---------------------------------------------------------*
+
+  CHECK lt_routehd[] IS NOT INITIAL.
+
+* retrieve text ojects
+  PERFORM get_text_header TABLES lt_routehd.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+* Below perform is migrated from Pfizer.
+*  Reusing perform get_zlcplth inside subroutine   get_routing_data
+* Get transactions for Routing
+  PERFORM get_zlcplth TABLES lt_routehd.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+* Retrieve Vendor Names
+  PERFORM retrieve_vendor_name TABLES lt_routehd.
+* Retrieve Customer Names
+  PERFORM retrieve_customer_name TABLES lt_routehd.
+* Retrieve Domain values for dropdowns
+  PERFORM get_dropdown_values.
+
+* formata Ouput
+*rl6
+*  PERFORM format_output_data TABLES lt_routehd
+*                                    lt_routed.
+  PERFORM format_output_data_r6 TABLES lt_routehd
+                                    lt_routed.
+*rl6
+
+
+
+ENDFORM.                    "get_routing_data
+
+
+*&---------------------------------------------------------------------*
+*&      Form  RETRIEVE_VENDOR_NAME
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM retrieve_vendor_name  TABLES pt_route STRUCTURE zlcrouteh.
+
+  DATA : ls_routehd TYPE zlcrouteh,
+         lt_lifnr   LIKE TABLE OF gs_lifnr_tx.
+
+  LOOP AT pt_route INTO ls_routehd
+    WHERE srclifnr IS NOT INITIAL
+       OR tollifnr IS NOT INITIAL.
+    gs_lifnr_tx-lifnr = ls_routehd-srclifnr.
+    APPEND gs_lifnr_tx TO lt_lifnr.
+*rl6
+    CHECK ls_routehd-tollifnr IS NOT  INITIAL.
+    gs_lifnr_tx-lifnr = ls_routehd-tollifnr.
+    APPEND gs_lifnr_tx TO lt_lifnr.
+*rl6
+  ENDLOOP.
+  DELETE lt_lifnr WHERE lifnr = ''.
+*
+
+  CHECK lt_lifnr IS NOT INITIAL.
+
+  SELECT lifnr name1 land1
+      FROM lfa1
+      APPENDING CORRESPONDING FIELDS OF TABLE gt_lifnr_tx
+        FOR ALL ENTRIES IN lt_lifnr
+          WHERE lifnr = lt_lifnr-lifnr.
+  SORT gt_lifnr_tx BY lifnr.
+
+
+
+ENDFORM.                    " RETRIEVE_VENDOR_NAME
+*&---------------------------------------------------------------------*
+*&      Form  RETRIEVE_CUSTOMER_NAME
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM retrieve_customer_name  TABLES pt_route STRUCTURE zlcrouteh.
+
+  DATA : lt_route TYPE TABLE OF zlcrouteh,
+         ls_route TYPE zlcrouteh,
+         ls_rom   TYPE zlcroutem.
+
+  lt_route = pt_route[].
+
+  DELETE lt_route WHERE destcust = ''.
+  CHECK lt_route IS NOT INITIAL.
+
+*rl6
+  LOOP AT gt_rotm INTO ls_rom
+      WHERE shipto IS NOT INITIAL.
+    ls_route-destcust = ls_rom-shipto.
+    APPEND ls_route TO lt_route.
+  ENDLOOP.
+*rl6
+
+  SELECT kunnr name1 land1
+      FROM kna1
+      INTO TABLE gt_kunnr_tx
+        FOR ALL ENTRIES IN lt_route
+          WHERE kunnr = lt_route-destcust.
+  SORT gt_kunnr_tx BY kunnr.
+
+ENDFORM.                    " RETRIEVE_CUSTOMER_NAME
+*&---------------------------------------------------------------------*
+*&      Form  GET_DROPDOWN_VALUES
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_dropdown_values .
+
+  DATA: ls_dd07v    TYPE dd07v,
+        lt_dd07v    TYPE TABLE OF dd07v.
+
+* Get Domain Values - FlowType ZLC_FLOWTYPE
+
+  CALL FUNCTION 'GET_DOMAIN_VALUES'
+    EXPORTING
+      domname         = 'ZLC_FLOWTYPE'
+    TABLES
+      values_tab      = lt_dd07v
+    EXCEPTIONS
+      no_values_found = 1
+      OTHERS          = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  LOOP AT lt_dd07v INTO ls_dd07v.
+    gs_fltyp_dd-key = ls_dd07v-domvalue_l.
+    gs_fltyp_dd-value = ls_dd07v-ddtext.
+    APPEND gs_fltyp_dd TO gt_fltyp_dd.
+    CLEAR gs_fltyp_dd.
+  ENDLOOP.
+  SORT gt_fltyp_dd BY key.
+
+* Get Domain Values - FlowType ZLC_FLOWTYPE
+
+  CALL FUNCTION 'GET_DOMAIN_VALUES'
+    EXPORTING
+      domname         = 'ZLC_ROUTINGSTATUS'
+    TABLES
+      values_tab      = lt_dd07v
+    EXCEPTIONS
+      no_values_found = 1
+      OTHERS          = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  LOOP AT lt_dd07v INTO ls_dd07v.
+    gs_fltyp_dd-key = ls_dd07v-domvalue_l.
+    gs_fltyp_dd-value = ls_dd07v-ddtext.
+    APPEND gs_fltyp_dd TO gt_stats_dd.
+    CLEAR gs_fltyp_dd.
+  ENDLOOP.
+  SORT gt_stats_dd BY key.
+
+* Get Domain Values - FlowType ZLC_FLOWTYPE
+
+  CALL FUNCTION 'GET_DOMAIN_VALUES'
+    EXPORTING
+      domname         = 'ZLC_NODETYPE'
+    TABLES
+      values_tab      = lt_dd07v
+    EXCEPTIONS
+      no_values_found = 1
+      OTHERS          = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  LOOP AT lt_dd07v INTO ls_dd07v.
+    gs_ndtyp_dd-key   = ls_dd07v-domvalue_l.
+    gs_ndtyp_dd-value = ls_dd07v-ddtext.
+    APPEND gs_ndtyp_dd TO gt_ndtyp_dd.
+    CLEAR gs_ndtyp_dd.
+  ENDLOOP.
+  SORT gt_ndtyp_dd BY key.
+
+*R3
+* Get Domain Values - FlowType ZLC_SHIPTYPE
+
+  SELECT * FROM zlcshiptype
+     INTO TABLE gt_shipty.
+  SORT gt_shipty BY lcshipty.
+
+*R3
+
+
+ENDFORM.                    " GET_DROPDOWN_VALUES
+*&---------------------------------------------------------------------*
+*&      Form  F4_SPC_COMPANY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM f4_spc_company USING pv_dynfld LIKE help_info-dynprofld.
+
+  DATA: progname TYPE sy-repid,
+        dynnum   TYPE sy-dynnr.
+
+  IF  gt_spc IS INITIAL.
+    SELECT * FROM zlcspcplant
+             INTO CORRESPONDING FIELDS OF TABLE gt_spc.
+  ENDIF.
+
+  progname = sy-repid.
+  dynnum = sy-dynnr.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      retfield    = 'SPC'
+      dynpprog    = progname
+      dynpnr      = dynnum
+      dynprofield = pv_dynfld
+      value_org   = 'S'
+    TABLES
+      value_tab   = gt_spc.
+
+ENDFORM.                    " F4_SPC_COMPANY
+*&---------------------------------------------------------------------*
+*&      Form  F4_SPC_PLANT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0512   text
+*----------------------------------------------------------------------*
+FORM f4_spc_plant  USING pv_dynfld LIKE help_info-dynprofld.
+
+  DATA: progname TYPE sy-repid,
+        dynnum   TYPE sy-dynnr.
+
+  IF  gt_spc IS INITIAL.
+    SELECT * FROM zlcspcplant
+             INTO CORRESPONDING FIELDS OF TABLE gt_spc.
+  ENDIF.
+
+  progname = sy-repid.
+  dynnum = sy-dynnr.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      retfield    = 'WERKS'
+      dynpprog    = progname
+      dynpnr      = dynnum
+      dynprofield = pv_dynfld
+      value_org   = 'S'
+    TABLES
+      value_tab   = gt_spc.
+
+ENDFORM.                    " F4_SPC_PLANT
+*&---------------------------------------------------------------------*
+*&      Form  F4_SPC_LGORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0550   text
+*----------------------------------------------------------------------*
+FORM f4_spc_lgort  USING pv_dynfld LIKE help_info-dynprofld.
+
+  DATA: progname TYPE sy-repid,
+        dynnum   TYPE sy-dynnr.
+
+  IF  gt_spc IS INITIAL.
+    SELECT * FROM zlcspcplant
+             INTO CORRESPONDING FIELDS OF TABLE gt_spc.
+  ENDIF.
+
+  progname = sy-repid.
+  dynnum = sy-dynnr.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      retfield    = 'LGORT'
+      dynpprog    = progname
+      dynpnr      = dynnum
+      dynprofield = pv_dynfld
+      value_org   = 'S'
+    TABLES
+      value_tab   = gt_spc.
+ENDFORM.                    " F4_SPC_LGORT
+*&---------------------------------------------------------------------*
+*&      Form  F4_SPC_EKGRP
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0574   text
+*----------------------------------------------------------------------*
+FORM f4_spc_ekgrp  USING pv_dynfld LIKE help_info-dynprofld.
+
+  DATA: progname TYPE sy-repid,
+        dynnum   TYPE sy-dynnr,
+        lt_t024  TYPE TABLE OF t024,
+        ls_t024  TYPE t024.
+
+  FIELD-SYMBOLS : <fs_grp> LIKE gs_ekgrp.
+
+  IF  gt_ekgrp IS INITIAL.
+    SELECT * FROM zlcpgroups
+             INTO CORRESPONDING FIELDS OF TABLE gt_ekgrp.
+    CHECK gt_ekgrp IS NOT INITIAL.
+    SELECT ekgrp eknam
+      FROM t024
+      INTO CORRESPONDING FIELDS OF TABLE lt_t024
+      FOR ALL ENTRIES IN gt_ekgrp
+      WHERE ekgrp = gt_ekgrp-ekgrp.
+
+    LOOP AT gt_ekgrp ASSIGNING <fs_grp>.
+      READ TABLE lt_t024 INTO ls_t024
+          WITH KEY ekgrp = <fs_grp>-ekgrp.
+      IF sy-subrc = 0.
+        <fs_grp>-eknam = ls_t024-eknam.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+
+  progname = sy-repid.
+  dynnum = sy-dynnr.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      retfield    = 'EKGRP'
+      dynpprog    = progname
+      dynpnr      = dynnum
+      dynprofield = pv_dynfld
+      value_org   = 'S'
+    TABLES
+      value_tab   = gt_ekgrp.
+ENDFORM.                    " F4_SPC_EKGRP
+*&---------------------------------------------------------------------*
+*&      Form  AUTH_CHECK
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      <--P_LV_ALLOW  text
+*----------------------------------------------------------------------*
+FORM auth_check  USING pv_lc  TYPE zlc_logisticcenter
+                       pv_act
+                       pv_mode
+              CHANGING lv_allow.
+
+
+  CALL FUNCTION 'ZLCROUTE_AUTHORIZATION_CHECK'
+    EXPORTING
+      im_userid          = sy-uname
+      im_logistic_center = pv_lc
+      im_activity        = pv_act
+      im_mode            = pv_mode
+    IMPORTING
+      ev_allow           = lv_allow.
+*
+*
+*  DATA : lt_auth       TYPE TABLE OF us335,
+*         ls_auth       TYPE us335,
+*         lv_actv       TYPE xuobject VALUE '01'.
+*
+*  RANGES : lr_logc FOR zlcspcorg-lc,
+*           lr_actv FOR us335-object.
+*
+*  CALL FUNCTION 'GET_AUTH_VALUES'
+*    EXPORTING
+*      object1           = 'ZLC_ACTVTY'
+*      user              = sy-uname
+*      tcode             = ''
+*    TABLES
+*      values            = lt_auth
+*    EXCEPTIONS
+*      user_doesnt_exist = 1
+*      OTHERS            = 2.
+*  IF sy-subrc <> 0.
+*  ENDIF.
+*
+*  lr_actv-sign = 'I'.
+*  lr_actv-option = 'CP'.
+*
+*  LOOP AT lt_auth INTO ls_auth
+*    WHERE field = 'ZLC_ACTVTY'.
+*    lr_actv-low  = ls_auth-lowval.
+*    lr_actv-high = ls_auth-highval.
+*    APPEND lr_actv.
+*  ENDLOOP.
+*
+*
+*  IF lv_actv IN lr_actv[].
+*
+*    lr_logc-sign = 'I'.
+*    lr_logc-option = 'CP'.
+** Check for Logistic Ceneter
+*    LOOP AT lt_auth INTO ls_auth
+*        WHERE field = 'ZLC_LC'.
+*      lr_logc-low = ls_auth-lowval.
+*      lr_logc-high = ls_auth-highval.
+*      APPEND lr_logc.
+*    ENDLOOP.
+*
+*    IF 'ALC' IN lr_logc[]
+*    OR 'ELC' IN lr_logc[]
+*    OR 'LALC' IN lr_logc[].
+*      lv_allow = 'X'.
+*    ENDIF.
+*
+*  ENDIF.
+
+
+ENDFORM.                    " AUTH_CHECK
+*&---------------------------------------------------------------------*
+*&      Form  DYNAMIC_WHERE_CLAUSE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM dynamic_where_clause .
+
+  DATA: BEGIN OF ls_status,
+      sign    TYPE tvarv_sign,
+      option  TYPE tvarv_opti,
+      low	    TYPE tvarv_val,
+      high    TYPE tvarv_val,
+    END OF ls_status.
+
+
+* Routenbr
+  CONCATENATE  'ROUTENBR' 'IN' 'S_ROUTE'
+       INTO gs_where SEPARATED BY space.
+
+
+  PERFORM build_where_clause USING 'FLEXSCEN'
+                                   'S_FLEXSC' ''.
+
+  PERFORM build_where_clause USING 'PHYSFLOW'
+                                   'S_PHYFLO' ''.
+
+  PERFORM build_where_clause USING 'DSQUALIFY'
+                                   'S_DSQUAL' ''.
+
+  PERFORM build_where_clause USING 'MDCHKSTS'
+                                   'S_MDC' ''.
+
+  PERFORM build_where_clause USING 'FLOWTYPE'
+                                   'S_FLOWTY' ''.
+  PERFORM build_where_clause USING 'VALIDFRM'
+                                   'S_VALFRM' '' .
+  PERFORM build_where_clause USING 'VALIDTIL'
+                                   'S_VALTO' ''.
+
+  IF  s_status-low = 'R'
+  AND s_status-option = 'EQ'.
+    MOVE-CORRESPONDING s_status TO ls_status.
+    ls_status-low = 'P'.
+    APPEND ls_status TO s_status.
+  ENDIF.
+
+
+  PERFORM build_where_clause USING 'ROUTSTAT'
+                                   'S_STATUS' ''.
+  IF p_alc IS NOT INITIAL
+  OR p_elc IS NOT INITIAL
+*  OR p_lalc IS NOT INITIAL  " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  OR p_gesa IS NOT INITIAL  " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+  OR p_gese IS NOT INITIAL
+  OR p_gesam IS NOT INITIAL
+  OR p_usexp IS NOT INITIAL.
+*    CONCATENATE gs_where 'AND' '(' INTO gs_where
+*      SEPARATED BY space.
+
+    PERFORM build_where_clause USING 'LCALC'
+                                     'P_ALC'
+                                     'X'.
+    PERFORM build_where_clause USING 'LCELC'
+                                     'P_ELC'
+                                     'X'.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+
+*    PERFORM build_where_clause USING 'LCLALC'
+*                                     'P_LALC'
+*                                     'X'.
+*    PERFORM build_where_clause USING 'LCGESA'
+*                                     'P_GESA'
+*                                     'X'.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+    PERFORM build_where_clause USING 'LCGESE'
+                                     'P_GESE'
+                                     'X'.
+    PERFORM build_where_clause USING 'LCGESAM'
+                                     'P_GESAM'
+                                     'X'.
+    PERFORM build_where_clause USING 'LCUSX'
+                                     'P_USEXP'
+                                     'X'.
+*BEGIN of MOD-001-<Release 01>-DE1K903206-BHATTA37-11-APR-2014
+**    CONCATENATE gs_where ')' INTO gs_where
+**      SEPARATED BY space.
+*END of MOD-001-<Release 01>-DE1K903206-BHATTA37-11-APR-2014
+
+  ENDIF.
+
+  PERFORM build_where_clause USING 'SRCLIFNR'
+                                   'S_SRCEVN' ''.
+  PERFORM build_where_clause USING 'TOLLIFNR'
+                                   'S_DTVEND' ''.
+  PERFORM build_where_clause USING 'DESTCUST'
+                                   'S_DCCUST' ''.
+*  PERFORM build_where_clause USING 'SPCVSVRS'
+*                                   'S_SPCVIR' ''.
+*  PERFORM build_where_clause USING 'TOTLSTOP'
+*                                   'S_STOPS' ''.
+  PERFORM build_where_clause USING 'CREATEBY'
+                                   'S_CRTBY' ''.
+  PERFORM build_where_clause USING 'CREATEDT'
+                                   'S_CRTDT' ''.
+  PERFORM build_where_clause USING 'CHANGEBY'
+                                   'S_CHGBY' ''.
+  PERFORM build_where_clause USING 'CHANGEDT'
+                                   'S_CHGDT' ''.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  PERFORM build_where_clause USING 'ALTROUTE'
+*                                   'P_ALTR' 'X'.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+  PERFORM build_where_clause USING 'EURELEASE'
+                                   'P_EUREL' 'X'.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  PERFORM build_where_clause USING 'ADVBILL'
+*                                   'P_AVBILL' 'X'.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  CONCATENATE gs_where '.'  INTO gs_where
+*    SEPARATED BY space.
+
+ENDFORM.                    " DYNAMIC_WHERE_CLAUSE
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_WHERE_CLAUSE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_2576   text
+*      -->P_2577   text
+*      -->P_2578   text
+*----------------------------------------------------------------------*
+FORM build_where_clause  USING  p_field
+                                p_selop
+                                p_param.
+
+  FIELD-SYMBOLS : <fs_selopt> TYPE any.
+  ASSIGN (p_selop) TO <fs_selopt>  .
+
+  CHECK <fs_selopt> IS NOT INITIAL.
+
+  IF p_param IS INITIAL.
+    CONCATENATE gs_where 'AND' p_field 'IN' p_selop
+      INTO gs_where SEPARATED BY space.
+  ELSE.
+    IF gv_flag IS INITIAL.
+
+*BEGIN of MOD-001-<Release 01>-DE1K903206-BHATTA37-11-APR-2014
+*      CONCATENATE gs_where 'AND' '(' p_field '=' p_selop
+
+      CONCATENATE gs_where 'AND' p_field '=' p_selop
+*END of MOD-001-<Release 01>-DE1K903206-BHATTA37-11-APR-2014
+        INTO gs_where SEPARATED BY space.
+      gv_flag = 'X'.
+    ELSE.
+      CONCATENATE gs_where 'AND' p_field '=' p_selop
+        INTO gs_where SEPARATED BY space.
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.                    " BUILD_WHERE_CLAUSE
+*&---------------------------------------------------------------------*
+*&      Form  GET_ZLCROUTEM
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM get_zlcroutem TABLES pt_head STRUCTURE zlcrouteh.
+
+  CHECK pt_head[] IS NOT INITIAL.
+  SELECT * FROM zlcroutem
+     INTO TABLE gt_rotm
+      FOR ALL ENTRIES IN pt_head
+        WHERE routenbr =  pt_head-routenbr.
+*-rl4
+  SORT gt_rotm BY routenbr matnr.
+*rl4
+
+ENDFORM.                    " GET_ZLCROUTEM
+*&---------------------------------------------------------------------*
+*&      Form  RETRIEVE_MATNR_TEXT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM retrieve_matnr_text .
+
+  CHECK gt_rotm IS NOT INITIAL.
+
+*  SELECT matnr maktx
+*    FROM makt
+*    APPENDING CORRESPONDING FIELDS OF TABLE gt_maktx
+*    PACKAGE SIZE 10000
+*    FOR ALL ENTRIES IN gt_rotm
+*    WHERE matnr = gt_rotm-matnr
+*      AND spras = sy-langu
+*    ENDSELECT.
+
+  SELECT matnr maktx
+    FROM makt
+    INTO CORRESPONDING FIELDS OF TABLE gt_maktx
+    FOR ALL ENTRIES IN gt_rotm
+    WHERE matnr = gt_rotm-matnr
+      AND spras = sy-langu.
+
+  SORT gt_maktx BY matnr.
+
+ENDFORM.                    " RETRIEVE_MATNR_TEXT
+*&---------------------------------------------------------------------*
+*&      Form  F4_FLEX_SCENARIO
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0787   text
+*----------------------------------------------------------------------*
+FORM f4_flex_scenario  USING pv_dynfl LIKE help_info-dynprofld.
+
+
+
+  DATA: BEGIN OF ls_flex,
+          flex   TYPE zlc_flexscenario,
+          descr  TYPE descr40,
+        END OF ls_flex.
+
+  DATA: progname  TYPE sy-repid,
+        dynnum    TYPE sy-dynnr,
+        ls_return TYPE ddshretval,
+        ls_ddval  TYPE dd07v,
+        lt_flex   LIKE TABLE OF ls_flex,
+        lt_field  TYPE TABLE OF dfies,
+        lt_ddval  TYPE TABLE OF dd07v,
+        lt_return TYPE TABLE OF ddshretval.
+
+  CALL FUNCTION 'GET_DOMAIN_VALUES'
+    EXPORTING
+      domname         = 'ZLC_FLEXSCENARIO'
+    TABLES
+      values_tab      = lt_ddval
+    EXCEPTIONS
+      no_values_found = 1
+      OTHERS          = 2.
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  LOOP AT lt_ddval INTO ls_ddval.
+    ls_flex-flex = ls_ddval-domvalue_l.
+    ls_flex-descr = ls_ddval-ddtext.
+    APPEND ls_flex TO lt_flex.
+  ENDLOOP.
+*
+*  ls_flex-flex = 'BS'.
+*  ls_flex-descr = text-031.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'TT'.
+*  ls_flex-descr = text-032.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'FT'.
+*  ls_flex-descr = text-033.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'TC'.
+*  ls_flex-descr = text-034.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'ISI-BS'.
+*  CONCATENATE text-035 text-031 INTO ls_flex-descr.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'ISI-FT'.
+*  CONCATENATE text-035 text-033 INTO ls_flex-descr.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'ISO-BS'.
+*  CONCATENATE text-036 text-031 INTO ls_flex-descr.
+*  APPEND ls_flex TO lt_flex.
+*  ls_flex-flex = 'ISO-FT'.
+*  CONCATENATE text-036 text-033 INTO ls_flex-descr.
+*  APPEND ls_flex TO lt_flex.
+
+*
+  progname = sy-repid.
+  dynnum = sy-dynnr.
+
+*
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      retfield        = 'FLEX'
+      dynpprog        = progname
+      dynpnr          = dynnum
+      dynprofield     = pv_dynfl
+      value_org       = 'S'
+    TABLES
+      field_tab       = lt_field
+      return_tab      = lt_return
+      value_tab       = lt_flex
+    EXCEPTIONS
+      parameter_error = 1
+      no_values_found = 2
+      OTHERS          = 3.
+  IF sy-subrc <> 0.
+* MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*         WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+  ELSE.
+*    READ TABLE lt_return INTO ls_return INDEX 1.
+*    READ TABLE gt_t300 INTO ls_t300
+*        WITH KEY lgnum = ls_return-fieldval.
+*    gs_lgnum-lnumt = ls_t300-lnumt.
+
+  ENDIF.
+
+
+ENDFORM.                    " F4_FLEX_SCENARIO
+*&---------------------------------------------------------------------*
+*&      Form  FORMAT_OUTPUT_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM format_output_data TABLES tt_roh STRUCTURE zlcrouteh
+                               tt_rod STRUCTURE zlcrouted.
+
+  DATA: ls_routehd TYPE zlcrouteh.
+  DATA: lt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: tt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: ls_routed  TYPE zlcrouted.
+  DATA: ls_routedx TYPE zlcrouted.
+  DATA: lt_routed TYPE TABLE OF zlcrouted.
+  DATA: tt_routed TYPE TABLE OF zlcrouted.
+  DATA: ls_routem TYPE zlcroutem.
+  DATA: lt_routem TYPE TABLE OF zlcroutem.
+  DATA: lv_tabix  TYPE i.
+  DATA: lv_index  TYPE sytabix.
+
+*R3
+  DATA: ls_makt TYPE makt,
+        ls_ship TYPE zlcshiptype.
+
+  SORT tt_rod BY routenbr routeseq.
+
+  LOOP AT tt_roh INTO ls_routehd.
+
+    MOVE-CORRESPONDING ls_routehd TO gs_routealv.
+* Status Description
+    READ TABLE gt_stats_dd INTO gs_fltyp_dd
+        WITH KEY key = gs_routealv-routstat
+          BINARY SEARCH.
+    gs_routealv-routstat_desc = gs_fltyp_dd-value.
+
+* Process Description
+    READ TABLE gt_fltyp_dd INTO gs_fltyp_dd
+        WITH KEY key = gs_routealv-flowtype
+          BINARY SEARCH.
+    gs_routealv-flowtype_desc = gs_fltyp_dd-value.
+
+* Source, Name, Country
+    IF gs_routealv-srclifnr IS NOT INITIAL.
+      CLEAR gs_lifnr_tx.
+      READ TABLE gt_lifnr_tx INTO gs_lifnr_tx
+            WITH KEY lifnr = gs_routealv-srclifnr
+              BINARY SEARCH.
+      gs_routealv-srclifnr_nm = gs_lifnr_tx-name1.
+      gs_routealv-srceland1 = gs_lifnr_tx-land1.
+    ENDIF.
+*
+
+
+* Destination - Customer
+    IF gs_routealv-destcust IS NOT INITIAL.
+      CLEAR gs_kunnr_tx.
+      READ TABLE gt_kunnr_tx INTO gs_kunnr_tx
+            WITH KEY kunnr = gs_routealv-destcust
+              BINARY SEARCH.
+      gs_routealv-destcust_nm = gs_kunnr_tx-name1.
+      gs_routealv-destland1   = gs_kunnr_tx-land1.
+    ENDIF.
+
+* Destination - Toller, Name and Country
+
+    IF gs_routealv-tollifnr IS NOT INITIAL.
+      CLEAR gs_lifnr_tx.
+      READ TABLE gt_lifnr_tx INTO gs_lifnr_tx
+            WITH KEY lifnr = gs_routealv-tollifnr
+              BINARY SEARCH.
+      gs_routealv-tollifnr_nm = gs_lifnr_tx-name1.
+      gs_routealv-destland1 = gs_lifnr_tx-land1.
+    ENDIF.
+
+*
+
+    REFRESH tt_routed.
+    tt_routed[] = tt_rod[].
+    DELETE tt_routed WHERE routenbr <> ls_routehd-routenbr.
+
+
+    LOOP AT tt_routed INTO ls_routed
+        WHERE routenbr = ls_routehd-routenbr.
+      CLEAR ls_routedx.
+      ls_routedx = ls_routed.
+      AT FIRST.
+
+* Node type description
+        READ TABLE gt_ndtyp_dd INTO gs_ndtyp_dd
+            WITH KEY key = ls_routedx-nodetype
+              BINARY SEARCH.
+        gs_routealv-firstnodety = gs_ndtyp_dd-value.
+
+        gs_routealv-firstcompany = ls_routedx-spcompny.
+        gs_routealv-firstplant =   ls_routedx-spcplant.
+        gs_routealv-firstsloc  =   ls_routedx-lgort.
+        gs_routealv-firstekgrp =   ls_routedx-ekgrp.
+      ENDAT.
+
+      AT LAST.
+        gs_routealv-lastcompany = ls_routedx-spcompny.
+        gs_routealv-lastplant =   ls_routedx-spcplant.
+        gs_routealv-lastsloc  =   ls_routedx-lgort.
+        gs_routealv-lastekgrp =   ls_routedx-ekgrp.
+      ENDAT.
+    ENDLOOP.
+
+* Master Data Check Status ICON
+    CASE gs_routealv-mdchksts.
+      WHEN 'C'.
+        gs_routealv-mdchksts_icon = icon_green_light.
+      WHEN 'E'.
+        gs_routealv-mdchksts_icon = icon_red_light.
+      WHEN 'W'.
+        gs_routealv-mdchksts_icon = icon_yellow_light.
+      WHEN OTHERS.
+        gs_routealv-mdchksts_icon = icon_light_out.
+    ENDCASE.
+
+* Long Text ICON
+    READ TABLE gt_stxh
+      WITH KEY tdname = gs_routealv-routenbr
+      TRANSPORTING NO FIELDS
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      gs_routealv-ltext = icon_display_text.
+    ENDIF.
+
+*R3
+* Update material columns using parallel cursor
+    READ TABLE gt_rotm
+        WITH KEY routenbr =  gs_routealv-routenbr
+        BINARY SEARCH
+        TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      lv_tabix = sy-tabix.
+      LOOP AT gt_rotm INTO ls_routem
+          FROM lv_tabix.
+        IF ls_routem-routenbr <> gs_routealv-routenbr.
+          EXIT.
+        ENDIF.
+        gs_routealv-matnr = ls_routem-matnr.
+* descr
+        READ TABLE gt_maktx INTO ls_makt
+              WITH KEY matnr = ls_routem-matnr
+              BINARY SEARCH.
+        gs_routealv-maktx = ls_makt-maktx.
+        CLEAR ls_makt.
+
+* Shiptype
+*rl6
+*        READ TABLE gt_shipty INTO ls_ship
+*            WITH KEY lcshipty = ls_routem-inshipty.
+*        gs_routealv-inshtyty = ls_ship-lcshiptxt.
+*        CLEAR ls_ship.
+*        READ TABLE gt_shipty INTO ls_ship
+*            WITH KEY lcshipty = ls_routem-outshipty.
+*        gs_routealv-outshtyty = ls_ship-lcshiptxt.
+*        CLEAR ls_ship.
+*rl6
+
+        APPEND gs_routealv TO gt_routealv.
+
+      ENDLOOP.
+    ELSE.
+      APPEND gs_routealv TO gt_routealv.
+    ENDIF.
+    CLEAR: gs_routealv.
+*R3
+
+  ENDLOOP.
+
+ENDFORM.                    " FORMAT_OUTPUT_DATA
+*&---------------------------------------------------------------------*
+*&      Form  GET_TEXT_HEADER
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM get_text_header  TABLES tt_roh STRUCTURE zlcrouteh.
+
+  DATA: ls_roh TYPE zlcrouteh.
+  DATA: ls_stxh TYPE stxh.
+
+  LOOP AT tt_roh INTO ls_roh.
+    ls_stxh-tdname = ls_roh-routenbr.
+    APPEND ls_stxh TO gt_stxh.
+  ENDLOOP.
+
+  SELECT tdname  FROM stxh
+    INTO CORRESPONDING FIELDS OF TABLE gt_stxh
+    FOR ALL ENTRIES IN gt_stxh
+      WHERE tdobject = 'ZLCROUTE'
+        AND tdname = gt_stxh-tdname
+        AND tdid   = 'ZLCR'
+        AND tdspras = sy-langu.
+
+  SORT gt_stxh BY tdname.
+
+
+ENDFORM.                    " GET_TEXT_HEADER
+
+*&---------------------------------------------------------------------*
+*&      Form  variant_f16
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM variant_f16 .
+
+  DATA: h_repid LIKE sy-repid.
+
+  h_repid = sy-repid.
+  CALL FUNCTION 'PM_CHANGE_SELOPT'
+    EXPORTING
+      repname = h_repid
+      tcode   = ' '
+      uname   = sy-uname.
+
+ENDFORM.                    " variant_f16
+
+*&---------------------------------------------------------------------*
+*&      Form  EXPORT_SELECTIONS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM export_selections .
+  DATA: l_reportid    LIKE rsvar-report.
+  DATA : l_tabix LIKE sy-tabix.
+
+*check atleast one field is filled.
+  l_reportid = sy-repid.
+  CALL FUNCTION 'RS_REFRESH_FROM_SELECTOPTIONS'
+    EXPORTING
+      curr_report     = l_reportid
+    TABLES
+      selection_table = gt_sel_tab.
+
+  EXPORT lt_sel_tab FROM gt_sel_tab[] TO MEMORY ID 'ZPRWB_SELVAL'.
+
+ENDFORM.                    " EXPORT_SELECTIONS
+*&---------------------------------------------------------------------*
+*&      Form  REFRESH_ALL
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM refresh_all .
+  CLEAR :
+  p_alc,
+  p_elc,
+*  p_lalc,  " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  p_gesa,  " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+  p_gese,
+*  p_gesam,
+  p_usexp,
+  s_route[],
+  s_status[],
+  s_flexsc[],
+  s_phyflo[],
+  s_dsqual[],
+  s_mdc[],
+  s_flowty[],
+  s_valfrm[],
+  s_valto[],
+  s_srcevn[],
+  p_toller,
+  s_dtvend[],
+  s_dccust[],
+  p_consg,
+  s_matnr[],
+  s_shto[],
+  p_matsp,
+  p_nodety,
+  s_spcom[],
+  s_spcloc[],
+  s_spcekg[],
+  s_spcpl[],
+*  s_spcvir[],
+*  s_stops[],
+  p_dauto,
+  p_eurel,
+  p_flash,
+*  p_avbill,
+*  p_altr,
+*  p_dfwi
+
+*rl6
+  s_flexad[]
+*rl6
+  .
+ENDFORM.                    " REFRESH_ALL
+
+*&---------------------------------------------------------------------*
+*&      Form  FILTER_FOR_PARTIALLY_APPROVED
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM filter_for_partially_approved  TABLES tt_output STRUCTURE zlcrouteh.
+
+  DATA: lt_app     TYPE TABLE OF zlcrouteo,
+        lt_route   TYPE TABLE OF zlcrouteh,
+        ls_app     TYPE zlcrouteo,
+        ls_output  TYPE  zlcrouteh,
+        lv_dele.
+
+  RANGES: lr_stat FOR zlcrouteo-lc.
+
+
+  CHECK s_status-sign = 'I'
+    AND s_status-option = 'EQ'
+    AND s_status-low = 'R'.
+
+  LOOP AT tt_output INTO ls_output
+      WHERE routstat = 'P'.
+    APPEND ls_output TO lt_route.
+  ENDLOOP.
+  CHECK lt_route IS NOT INITIAL.
+
+*  lr_stat-sign = 'E'.
+*  lr_stat-option = 'EQ'.
+*  IF p_alc IS NOT INITIAL.
+*    lr_stat-low = text-002.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_elc IS NOT INITIAL.
+*    lr_stat-low = text-003.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_lalc IS NOT INITIAL.
+*    lr_stat-low = text-004.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_gesa IS NOT INITIAL.
+*    lr_stat-low = text-038.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_gese IS NOT INITIAL.
+*    lr_stat-low = text-039.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_gesam IS NOT INITIAL.
+*    lr_stat-low = text-040.
+*    APPEND lr_stat.
+*  ENDIF.
+*  IF p_usexp IS NOT INITIAL.
+*    lr_stat-low = text-041.
+*    APPEND lr_stat.
+*  ENDIF.
+
+
+  SELECT * FROM zlcrouteo
+      INTO TABLE lt_app
+      FOR ALL ENTRIES IN tt_output
+      WHERE routenbr     = tt_output-routenbr
+        AND approvalstat = 'P'
+        AND inact        = ''.
+
+  SORT lt_app BY routenbr lc..
+
+  LOOP AT lt_route INTO ls_output.
+    PERFORM check_partially_approved TABLES  lt_app
+                                      USING  ls_output-routenbr
+                                    CHANGING lv_dele.
+    CHECK lv_dele IS NOT INITIAL.
+    DELETE tt_output WHERE routenbr = ls_output-routenbr.
+    CLEAR lv_dele.
+  ENDLOOP.
+
+
+ENDFORM.                    " FILTER_FOR_PARTIALLY_APPROVED
+*&---------------------------------------------------------------------*
+*&      Form  CHECK_PARTIALLY_APPROVED
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_APP  text
+*      <--P_LV_DELE  text
+*----------------------------------------------------------------------*
+FORM check_partially_approved  TABLES   tt_app   STRUCTURE zlcrouteo
+                                USING   pv_route TYPE zlcrouteh-routenbr
+                               CHANGING pv_dele.
+
+  IF p_alc IS NOT INITIAL.
+    READ TABLE tt_app
+        WITH KEY routenbr = pv_route
+                       lc = TEXT-002
+             BINARY SEARCH
+             TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      pv_dele = 'X'.
+    ENDIF.
+  ENDIF.
+
+  IF p_elc IS NOT INITIAL.
+    READ TABLE tt_app
+        WITH KEY routenbr = pv_route
+                       lc = TEXT-003
+             BINARY SEARCH
+             TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      pv_dele = 'X'.
+    ELSE.
+      pv_dele = ''.
+      EXIT.
+    ENDIF.
+  ENDIF.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*  IF p_lalc IS NOT INITIAL.
+*    READ TABLE tt_app
+*        WITH KEY routenbr = pv_route
+*                       lc = text-004
+*             BINARY SEARCH
+*             TRANSPORTING NO FIELDS.
+*    IF sy-subrc = 0.
+*      pv_dele = 'X'.
+*    ELSE.
+*      pv_dele = ''.
+*      EXIT.
+*    ENDIF.
+*  ENDIF.
+
+*  IF p_gesa IS NOT INITIAL.
+*    READ TABLE tt_app
+*        WITH KEY routenbr = pv_route
+*                       lc = text-038
+*             BINARY SEARCH
+*             TRANSPORTING NO FIELDS.
+*    IF sy-subrc = 0.
+*      pv_dele = 'X'.
+*    ELSE.
+*      pv_dele = ''.
+*      EXIT.
+*    ENDIF.
+*  ENDIF.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+  IF p_gese IS NOT INITIAL.
+    READ TABLE tt_app
+        WITH KEY routenbr = pv_route
+                       lc = TEXT-039
+             BINARY SEARCH
+             TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      pv_dele = 'X'.
+    ELSE.
+      pv_dele = ''.
+      EXIT.
+    ENDIF.
+  ENDIF.
+
+  IF p_gesam IS NOT INITIAL.
+    READ TABLE tt_app
+        WITH KEY routenbr = pv_route
+                       lc = TEXT-040
+             BINARY SEARCH
+             TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      pv_dele = 'X'.
+    ELSE.
+      pv_dele = ''.
+      EXIT.
+    ENDIF.
+  ENDIF.
+
+  IF p_usexp IS NOT INITIAL.
+    READ TABLE tt_app
+        WITH KEY routenbr = pv_route
+                       lc = TEXT-041
+             BINARY SEARCH
+             TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      pv_dele = 'X'.
+    ELSE.
+      pv_dele = ''.
+      EXIT.
+    ENDIF.
+  ENDIF.
+
+
+
+ENDFORM.                    " CHECK_PARTIALLY_APPROVED
+*&---------------------------------------------------------------------*
+*&      Form  FORMAT_OUTPUT_DATA_R6
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*      -->P_LT_ROUTED  text
+*----------------------------------------------------------------------*
+FORM format_output_data_r6
+                        TABLES tt_roh STRUCTURE zlcrouteh
+                               tt_rod STRUCTURE zlcrouted.
+
+  DATA: ls_routehd TYPE zlcrouteh.
+  DATA: lt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: tt_routehd TYPE TABLE OF zlcrouteh.
+  DATA: ls_routed  TYPE zlcrouted.
+  DATA: ls_routedx TYPE zlcrouted.
+  DATA: lt_routed TYPE TABLE OF zlcrouted.
+  DATA: tt_routed TYPE TABLE OF zlcrouted.
+  DATA: ls_routem TYPE zlcroutem.
+  DATA: ls_plth   TYPE zlcplth.   " MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+  DATA: lt_routem TYPE TABLE OF zlcroutem.
+  DATA: lv_tabix  TYPE i.
+  DATA: lv_index  TYPE sytabix.
+
+*R3
+  DATA: ls_makt TYPE makt,
+        ls_ship TYPE zlcshiptype.
+* BEGIN OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+  CLEAR gv_flag1.
+  SELECT routenbr routeseq spcompny spcplant lgort FROM zlcrouted INTO TABLE tt_routedd.
+    IF sy-subrc IS INITIAL.
+      gv_flag1 = abap_true.
+      ENDIF.
+*END OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+  SORT tt_rod BY routenbr routeseq.
+
+  LOOP AT tt_roh INTO ls_routehd.
+
+    MOVE-CORRESPONDING ls_routehd TO gs_routealv.
+* Status Description
+    READ TABLE gt_stats_dd INTO gs_fltyp_dd
+        WITH KEY key = gs_routealv-routstat
+          BINARY SEARCH.
+    gs_routealv-routstat_desc = gs_fltyp_dd-value.
+
+* Process Description
+    READ TABLE gt_fltyp_dd INTO gs_fltyp_dd
+        WITH KEY key = gs_routealv-flowtype
+          BINARY SEARCH.
+    gs_routealv-flowtype_desc = gs_fltyp_dd-value.
+
+* Source, Name, Country
+    IF gs_routealv-srclifnr IS NOT INITIAL.
+      CLEAR gs_lifnr_tx.
+      READ TABLE gt_lifnr_tx INTO gs_lifnr_tx
+            WITH KEY lifnr = gs_routealv-srclifnr
+              BINARY SEARCH.
+      gs_routealv-srclifnr_nm = gs_lifnr_tx-name1.
+      gs_routealv-srceland1 = gs_lifnr_tx-land1.
+    ENDIF.
+*
+
+
+* Destination - Customer
+    IF gs_routealv-destcust IS NOT INITIAL.
+      CLEAR gs_kunnr_tx.
+      READ TABLE gt_kunnr_tx INTO gs_kunnr_tx
+            WITH KEY kunnr = gs_routealv-destcust
+              BINARY SEARCH.
+      gs_routealv-destcust_nm = gs_kunnr_tx-name1.
+      gs_routealv-destland1   = gs_kunnr_tx-land1.
+    ENDIF.
+
+* Destination - Toller, Name and Country
+
+    IF gs_routealv-tollifnr IS NOT INITIAL.
+      CLEAR gs_lifnr_tx.
+      READ TABLE gt_lifnr_tx INTO gs_lifnr_tx
+            WITH KEY lifnr = gs_routealv-tollifnr
+              BINARY SEARCH.
+      gs_routealv-tollifnr_nm = gs_lifnr_tx-name1.
+      gs_routealv-destland1 = gs_lifnr_tx-land1.
+    ENDIF.
+
+*
+
+    REFRESH tt_routed.
+    tt_routed[] = tt_rod[].
+    DELETE tt_routed WHERE routenbr <> ls_routehd-routenbr.
+
+    LOOP AT tt_routed INTO ls_routed
+        WHERE routenbr = ls_routehd-routenbr.
+      CLEAR ls_routedx.
+      ls_routedx = ls_routed.
+
+      AT FIRST.
+
+* Node type description
+        READ TABLE gt_ndtyp_dd INTO gs_ndtyp_dd
+            WITH KEY key = ls_routedx-nodetype
+              BINARY SEARCH.
+        gs_routealv-firstnodety = gs_ndtyp_dd-value.
+        gs_routealv-firstekgrp =   ls_routedx-ekgrp.
+*rl6
+        gs_routealv-firstflexad = ls_routedx-flexadmincd.
+*BEGIN OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+        IF gv_flag1 EQ abap_true.
+        CLEAR lwa_routed.
+      SORT tt_routedd BY routenbr routeseq.
+    READ TABLE tt_routedd INTO lwa_routed WITH KEY routenbr = ls_routehd-routenbr.
+     IF sy-subrc IS INITIAL.
+         gs_routealv-firstplant = lwa_routed-spcplant.
+         gs_routealv-firstsloc = lwa_routed-lgort.
+         gs_routealv-firstcompany = lwa_routed-spcompny.
+      ENDIF.
+      ENDIF.
+*END OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+        CLEAR ls_ship.
+        READ TABLE gt_shipty INTO ls_ship
+            WITH KEY lcshipty = ls_routedx-inshipty.
+        gs_routealv-firstinshty = ls_ship-lcshiptxt.
+        CLEAR ls_ship.
+        READ TABLE gt_shipty INTO ls_ship
+            WITH KEY lcshipty = ls_routedx-outshipty.
+        gs_routealv-firstoutshty = ls_ship-lcshiptxt.
+        CLEAR ls_ship.
+*rl6
+      ENDAT.
+
+      AT LAST.
+        gs_routealv-lastekgrp =   ls_routedx-ekgrp.
+*rl6
+        gs_routealv-lastflexad = ls_routedx-flexadmincd.
+*BEGIN OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+       IF gv_flag1 EQ abap_true.
+       CLEAR lwa_routed.
+       SORT tt_routedd BY routenbr routeseq DESCENDING.
+       READ TABLE tt_routedd INTO lwa_routed WITH KEY routenbr = ls_routehd-routenbr.
+       IF sy-subrc IS INITIAL.
+          gs_routealv-lastplant = lwa_routed-spcplant.
+          gs_routealv-lastsloc = lwa_routed-lgort.
+          gs_routealv-lastcompany = lwa_routed-spcompny.
+       ENDIF.
+       ENDIF.
+*END OF: MOD-006-DE3K920494-CHG9879084-KUMARS22-10-NOV-2023
+        CLEAR ls_ship.
+        READ TABLE gt_shipty INTO ls_ship
+            WITH KEY lcshipty = ls_routedx-inshipty.
+        gs_routealv-lastinshty = ls_ship-lcshiptxt.
+        CLEAR ls_ship.
+        READ TABLE gt_shipty INTO ls_ship
+            WITH KEY lcshipty = ls_routedx-outshipty.
+        gs_routealv-lastoutshty = ls_ship-lcshiptxt.
+        CLEAR ls_ship.
+*rl6
+*rl6
+      ENDAT.
+    ENDLOOP.
+
+* Master Data Check Status ICON
+    CASE gs_routealv-mdchksts.
+      WHEN 'C'.
+        gs_routealv-mdchksts_icon = icon_green_light.
+      WHEN 'E'.
+        gs_routealv-mdchksts_icon = icon_red_light.
+      WHEN 'W'.
+        gs_routealv-mdchksts_icon = icon_yellow_light.
+      WHEN OTHERS.
+        gs_routealv-mdchksts_icon = icon_light_out.
+    ENDCASE.
+
+* Long Text ICON
+    READ TABLE gt_stxh
+      WITH KEY tdname = gs_routealv-routenbr
+      TRANSPORTING NO FIELDS
+      BINARY SEARCH.
+    IF sy-subrc = 0.
+      gs_routealv-ltext = icon_display_text.
+    ENDIF.
+*BEGIN of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*Below part is manually copied from Pfizer system.
+*This is not a new requirement for Zoetis
+*- Calulate Nof of routings
+    LOOP AT gt_plth INTO ls_plth
+        WHERE routenbr = gs_routealv-routenbr.
+      gs_routealv-txncount = gs_routealv-txncount + 1.
+*      gs_routealv-transnbr = ls_plth-transnbr.
+*      gs_routealv-firstdocnbr = ls_plth-firstdocnbr.
+    ENDLOOP.
+    gs_routealv-hardcode_count = 1.
+*END of MOD-000-<Release 01>-DE1K900894-NAGG-30-JAN-2014
+*R3
+* Update material columns using parallel cursor
+    READ TABLE gt_rotm
+        WITH KEY routenbr =  gs_routealv-routenbr
+        BINARY SEARCH
+        TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      lv_tabix = sy-tabix.
+      LOOP AT gt_rotm INTO ls_routem
+          FROM lv_tabix.
+        IF ls_routem-routenbr <> gs_routealv-routenbr.
+          EXIT.
+        ENDIF.
+        gs_routealv-matnr = ls_routem-matnr.
+* descr
+        READ TABLE gt_maktx INTO ls_makt
+              WITH KEY matnr = ls_routem-matnr
+              BINARY SEARCH.
+        gs_routealv-maktx = ls_makt-maktx.
+        CLEAR ls_makt.
+
+* Shiptype
+*rl6
+*        READ TABLE gt_shipty INTO ls_ship
+*            WITH KEY lcshipty = ls_routem-inshipty.
+*        gs_routealv-inshiptytx = ls_ship-lcshiptxt.
+*        CLEAR ls_ship.
+*        READ TABLE gt_shipty INTO ls_ship
+*            WITH KEY lcshipty = ls_routem-outshipty.
+*        gs_routealv-outshiptytx = ls_ship-lcshiptxt.
+*        CLEAR ls_ship.
+*rl6
+
+* Obsolete
+        gs_routealv-obsolete = ls_routem-obsolete.
+*rl6
+        gs_routealv-matnrsar = ls_routem-matnrsar.
+        gs_routealv-shipto   = ls_routem-shipto.
+        IF ls_routem-shipto IS NOT INITIAL.
+          CLEAR gs_kunnr_tx.
+          READ TABLE gt_kunnr_tx INTO gs_kunnr_tx
+                WITH KEY kunnr = ls_routem-shipto
+                  BINARY SEARCH.
+          gs_routealv-name1 = gs_kunnr_tx-name1.
+          gs_routealv-land1 = gs_kunnr_tx-land1.
+        ENDIF.
+
+
+*rl6
+
+
+        APPEND gs_routealv TO gt_routealv.
+        CLEAR :gs_routealv-name1.
+
+      ENDLOOP.
+    ELSE.
+      APPEND gs_routealv TO gt_routealv.
+    ENDIF.
+    CLEAR: gs_routealv.
+*R3
+
+  ENDLOOP.
+
+
+ENDFORM.                    " FORMAT_OUTPUT_DATA_R6
+*&---------------------------------------------------------------------*
+*&      Form  ONACT_MASS_UPLOAD
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM onact_mass_upload .
+
+  DATA: sap_guid       LIKE  smen_buffc-sap_guid..
+
+  CALL FUNCTION 'NAVIGATION_EXECUTE_OBJECT'
+    EXPORTING
+      control_instance = 'X'
+      object_name      = 'ZPRWBMASS'
+      reporttype       = 'TR'
+      sap_guid         = sap_guid
+      new_window       = 'X'.
+
+ENDFORM.                    " ONACT_MASS_UPLOAD
+*&---------------------------------------------------------------------*
+*&      Form  ONACT_MASS_UPLOAD
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM onact_mass_new_upload .
+
+  DATA: sap_guid       LIKE  smen_buffc-sap_guid..
+
+  CALL FUNCTION 'NAVIGATION_EXECUTE_OBJECT'
+    EXPORTING
+      control_instance = 'X'
+      object_name      = 'ZPREXMASS'
+      reporttype       = 'TR'
+      sap_guid         = sap_guid
+      new_window       = 'X'.
+
+ENDFORM.                    " ONACT_MASS_NEW_UPLOAD
+*&---------------------------------------------------------------------*
+*&      Form  GET_ZLCPLTH
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_LT_ROUTEHD  text
+*----------------------------------------------------------------------*
+FORM get_zlcplth  TABLES tt_roh STRUCTURE zlcrouteh.
+
+  DATA: ls_roh TYPE zlcrouteh.
+  DATA: ls_stxh TYPE stxh.
+
+
+  SELECT transnbr routenbr firstdocnbr FROM zlcplth
+    INTO CORRESPONDING FIELDS OF TABLE gt_plth
+      FOR ALL ENTRIES IN tt_roh[]
+        WHERE routenbr = tt_roh-routenbr.
+ENDFORM.                    " GET_ZLCPLTH
+*&---------------------------------------------------------------------*
+*&      Form  SUB_AUTH_CHECK_SPCCOMPNY
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0933   text
+*      -->P_0934   text
+*      -->P_SY_UNAME  text
+*      -->P_0936   text
+*      <--P_LV_ALLOW_C  text
+*----------------------------------------------------------------------*
+FORM sub_auth_check_spccompny  USING    uv_spc TYPE zlc_supplypointcompany
+                                        uv_actv
+                                        uv_usrid TYPE syuname
+                                        uv_mode
+                               CHANGING cv_allow_spc TYPE flag.
+
+  DATA : lt_auth_chk       TYPE TABLE OF us335,
+         ls_auth_chk       TYPE us335.
+
+  RANGES : lr_spc    FOR zlcrouted-spcompny,
+           lr_actvty FOR us335-object.
+
+  READ TABLE gt_auth INTO gs_auth
+        WITH KEY object = gc_auth_obj1   " Z_FLEXBUKR
+                 uname  = uv_usrid.
+
+  IF sy-subrc <> 0.
+* Get Auth Object Values
+    CALL FUNCTION 'GET_AUTH_VALUES'
+      EXPORTING
+        object1           = gc_auth_obj1    " Z_FLEXBUKR
+        user              = uv_usrid
+        tcode             = ''
+      TABLES
+        values            = lt_auth_chk
+      EXCEPTIONS
+        user_doesnt_exist = 1
+        OTHERS            = 2.
+
+    IF sy-subrc <> 0.
+      EXIT.
+    ELSE.
+      LOOP AT lt_auth_chk INTO ls_auth_chk.
+        MOVE-CORRESPONDING ls_auth_chk TO gs_auth.
+        gs_auth-uname = uv_usrid.
+        APPEND gs_auth TO gt_auth.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+* Check for Activity Authorization
+  lr_actvty-sign = 'I'.
+  lr_actvty-option = 'CP'.
+
+  LOOP AT gt_auth INTO gs_auth
+     WHERE field = gc_auth_actv  " ACTVT
+       AND uname = uv_usrid.
+
+    lr_actvty-low  = gs_auth-lowval.
+    lr_actvty-high = gs_auth-highval.
+    APPEND lr_actvty.
+  ENDLOOP.
+
+  CHECK uv_actv IN lr_actvty[]
+    AND lr_actvty[] IS NOT INITIAL.
+*  IF pv_mode = 1.
+*    cv_allow_spc = abap_true.
+*    EXIT.
+*  ENDIF.
+
+* Check for Company Code at Node Level Authorization
+  lr_spc-sign = 'I'.
+  lr_spc-option = 'CP'.
+
+  LOOP AT gt_auth INTO gs_auth
+       WHERE field = gc_auth_spc  " BUKRS
+         AND uname = uv_usrid.
+
+    lr_spc-low = gs_auth-lowval.
+    lr_spc-high = gs_auth-highval.
+    APPEND lr_spc.
+  ENDLOOP.
+
+  CHECK uv_spc  IN lr_spc[]
+    AND lr_spc[] IS NOT INITIAL.
+  cv_allow_spc = abap_true.
+
+  READ TABLE gt_auth
+       WITH KEY uname    = uv_usrid
+                lowval   = uv_spc
+                highval  = uv_actv
+            BINARY SEARCH
+            TRANSPORTING NO FIELDS.
+
+  IF sy-subrc <> 0.
+
+    AUTHORITY-CHECK OBJECT gc_auth_obj1         " Z_FLEXBUKR
+             ID gc_auth_spc   FIELD uv_spc     " BUKRS
+             ID gc_auth_actv  FIELD uv_actv.   " ACTVT
+
+    IF sy-subrc = 0.
+      gs_auth-uname    = uv_usrid.
+      gs_auth-lowval   = uv_spc.
+      gs_auth-highval  = uv_actv.
+      APPEND gs_auth TO gt_auth.
+      cv_allow_spc = abap_true.
+    ENDIF.
+  ELSE.
+    cv_allow_spc = abap_true.
+  ENDIF.
+
+
+ENDFORM.                    " SUB_AUTH_CHECK_SPCCOMPNY
+*&---------------------------------------------------------------------*
+*&      Form  SUB_AUTH_CHECK_SPCPLANT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0952   text
+*      -->P_0953   text
+*      -->P_SY_UNAME  text
+*      -->P_0955   text
+*      <--P_LV_ALLOW_P  text
+*----------------------------------------------------------------------*
+FORM sub_auth_check_spcplant  USING    uv_spc TYPE zlc_spcplant
+                                       uv_actv
+                                       uv_usrid TYPE syuname
+                                       uv_mode
+                              CHANGING cv_allow_spc TYPE flag.
+
+  DATA : lt_auth_chk       TYPE TABLE OF us335,
+         ls_auth_chk       TYPE us335.
+
+  RANGES : lr_spc    FOR zlcrouted-spcplant,
+           lr_actvty FOR us335-object.
+
+  READ TABLE gt_auth INTO gs_auth
+        WITH KEY object = gc_auth_obj2   " Z_FLEXWERK
+                 uname  = uv_usrid.
+
+  IF sy-subrc <> 0.
+* Get Auth Object Values
+    CALL FUNCTION 'GET_AUTH_VALUES'
+      EXPORTING
+        object1           = gc_auth_obj2    " Z_FLEXWERK
+        user              = uv_usrid
+        tcode             = ''
+      TABLES
+        values            = lt_auth_chk
+      EXCEPTIONS
+        user_doesnt_exist = 1
+        OTHERS            = 2.
+
+    IF sy-subrc <> 0.
+      EXIT.
+    ELSE.
+      LOOP AT lt_auth_chk INTO ls_auth_chk.
+        MOVE-CORRESPONDING ls_auth_chk TO gs_auth.
+        gs_auth-uname = uv_usrid.
+        APPEND gs_auth TO gt_auth.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+* Check for Activity Authorization
+  lr_actvty-sign = 'I'.
+  lr_actvty-option = 'CP'.
+
+  LOOP AT gt_auth INTO gs_auth
+     WHERE field = gc_auth_actv  " ACTVT
+       AND uname = uv_usrid.
+
+    lr_actvty-low  = gs_auth-lowval.
+    lr_actvty-high = gs_auth-highval.
+    APPEND lr_actvty.
+  ENDLOOP.
+
+  CHECK uv_actv IN lr_actvty[]
+    AND lr_actvty[] IS NOT INITIAL.
+*  IF pv_mode = 1.
+*    cv_allow_spc = abap_true.
+*    EXIT.
+*  ENDIF.
+
+* Check for Company Code at Node Level Authorization
+  lr_spc-sign = 'I'.
+  lr_spc-option = 'CP'.
+
+  LOOP AT gt_auth INTO gs_auth
+       WHERE field = gc_auth_werks  " WERKS
+         AND uname = uv_usrid.
+
+    lr_spc-low = gs_auth-lowval.
+    lr_spc-high = gs_auth-highval.
+    APPEND lr_spc.
+  ENDLOOP.
+
+  CHECK uv_spc  IN lr_spc[]
+    AND lr_spc[] IS NOT INITIAL.
+  cv_allow_spc = abap_true.
+
+  READ TABLE gt_auth
+       WITH KEY uname    = uv_usrid
+                lowval   = uv_spc
+                highval  = uv_actv
+            BINARY SEARCH
+            TRANSPORTING NO FIELDS.
+
+  IF sy-subrc <> 0.
+
+    AUTHORITY-CHECK OBJECT gc_auth_obj2         " Z_FLEXWERK
+             ID gc_auth_werks FIELD uv_spc     " WERKS
+             ID gc_auth_actv  FIELD uv_actv.   " ACTVT
+
+    IF sy-subrc = 0.
+      gs_auth-uname    = uv_usrid.
+      gs_auth-lowval   = uv_spc.
+      gs_auth-highval  = uv_actv.
+      APPEND gs_auth TO gt_auth.
+      cv_allow_spc = abap_true.
+    ENDIF.
+  ELSE.
+    cv_allow_spc = abap_true.
+  ENDIF.
+
+ENDFORM.                    " SUB_AUTH_CHECK_SPCPLANT
+*BEGIN: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
+INCLUDE zm2dn_get_routing_f01 IF FOUND .
+INCLUDE zm2dn_get_routing_o01 IF FOUND .
+INCLUDE zm2dn_get_routing_i01 IF FOUND .
+*END: MOD-003 R02-DE1K908807-ZAHIRS02-13-NOV-2014
